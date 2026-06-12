@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOP Scout — Standard Operating Procedure Completeness Checker</title>
+<meta name="description" content="Paste a Standard Operating Procedure and check it against 12 completeness criteria — clarity, structure, coverage, actionability. Quality score 0–100, gap analysis, AI gap-fill suggestions. No backend.">
+<meta name="theme-color" content="#111217">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111217'/%3E%3Cpath d='M8 10h16M8 15h16M8 20h12' fill='none' stroke='%230E32E8' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Khand:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#090A0F;--ink2:#3A3D46;--ink3:#6B7280;--ink4:#9AA0AB;
+  --soft-black:#111217;--paper:#F4F4F6;--paper2:#E8E8EA;--white:#FFFFFF;
+  --line:#C9CBD2;--line2:#B0B3BC;
+  --blue:#0E32E8;--indigo:#043EDB;--blue-bg:#EEF1FE;--blue-line:#AFC0FA;
+  --glow-faint:rgba(14,50,232,0.08);
+  --red:#DC2626;--red-bg:#FCEAEA;--red-line:#F0B4B4;
+  --amber:#B45309;--amber-bg:#FEF3C7;--amber-line:#E8C98A;
+  --green:#16A34A;--green-bg:#E7F6EC;--green-line:#9BD9AE;
+  --r:6px;--r2:10px;--r4:18px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Manrope',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+.sidebar{background:var(--white);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{min-width:0;padding:36px 44px 80px}
+
+/* SIDEBAR */
+.sb-top{padding:22px 20px 16px;border-bottom:1px solid var(--line)}
+.wordmark{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.wm-mark{width:30px;height:30px;background:var(--soft-black);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wm-mark svg{width:16px;height:16px}
+.wm-name{font-family:'Khand',sans-serif;font-weight:600;font-size:20px;color:var(--ink)}
+.wm-sub{font-size:11px;color:var(--ink3);margin-left:40px}
+.sb-sec{padding:14px 20px;border-bottom:1px solid var(--line)}
+.sb-sec:last-child{border-bottom:none}
+.sb-lbl{font-size:10px;font-weight:600;color:var(--ink4);letter-spacing:.12em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.ptabs{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:10px}
+.ptab{padding:6px;border:1px solid var(--line);border-radius:var(--r);font-size:11px;font-weight:600;color:var(--ink3);background:transparent;cursor:pointer;text-align:center;transition:all .12s;font-family:'Manrope',sans-serif}
+.ptab:hover{background:var(--paper);border-color:var(--line2)}
+.ptab.on{background:var(--soft-black);color:#fff;border-color:var(--soft-black)}
+.ppanel{display:none}.ppanel.on{display:block}
+.fl{margin-bottom:8px}
+.fl-lbl{font-size:10px;color:var(--ink3);margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.fl input{width:100%;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;font-family:'Manrope',sans-serif;font-size:12px;color:var(--ink);outline:none;transition:border-color .12s}
+.fl input:focus{border-color:var(--blue);background:var(--white);box-shadow:0 0 0 3px var(--glow-faint)}
+.mlist{display:flex;flex-direction:column;gap:3px;margin-top:7px}
+.mopt{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;transition:all .12s}
+.mopt:hover{background:var(--paper)}
+.mopt.on{border-color:var(--blue);background:var(--glow-faint)}
+.mradio{width:12px;height:12px;border:1.5px solid var(--line2);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.mopt.on .mradio{border-color:var(--blue)}
+.mradio::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue);display:none}
+.mopt.on .mradio::after{display:block}
+.mname{font-size:11px;font-weight:500;color:var(--ink);flex:1}
+.mtag{font-size:10px;color:var(--ink3);font-family:'JetBrains Mono',monospace}
+.key-status{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink3);padding:6px 8px;background:var(--paper);border-radius:var(--r);border:1px solid var(--line);margin-top:8px}
+.kdot{width:6px;height:6px;border-radius:50%;background:var(--ink4);flex-shrink:0}
+.kdot.ok{background:var(--green)}
+
+/* MAIN */
+.ph{margin-bottom:28px}
+.eyebrow{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-family:'Manrope',sans-serif;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.pt{font-family:'Khand',sans-serif;font-weight:600;font-size:40px;letter-spacing:-.015em;line-height:1.04;margin-bottom:6px}
+.pt em{font-style:normal;color:var(--blue)}
+.ps{font-size:13px;color:var(--ink3);line-height:1.6;max-width:560px}
+
+/* Input */
+.input-wrap{background:var(--soft-black);border-radius:var(--r4);overflow:hidden;margin-bottom:20px;border:2px solid transparent;transition:border-color .2s}
+.input-wrap.ok{border-color:rgba(14,50,232,.3)}
+.ih{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0}
+.ih-lbl{font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.ih-acts{display:flex;gap:6px}
+.ih-btn{font-size:11px;color:rgba(255,255,255,.45);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:4px 10px;border-radius:var(--r);cursor:pointer;font-family:'Manrope',sans-serif;transition:all .12s}
+.ih-btn:hover{background:rgba(255,255,255,.13);color:rgba(255,255,255,.8)}
+#sop-ta{width:100%;background:transparent;border:none;outline:none;resize:none;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.75;color:rgba(255,255,255,.85);padding:10px 16px 16px;min-height:240px;display:block}
+#sop-ta::placeholder{color:rgba(255,255,255,.2)}
+
+/* Results */
+.results{display:none}
+.results.visible{display:block}
+
+/* Summary */
+.summary-strip{display:flex;align-items:center;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+.sc{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:999px;font-size:11.5px;font-weight:600;font-family:'Manrope',sans-serif}
+.sc-pass{background:var(--green-bg);color:var(--green);border:1px solid var(--green-line)}
+.sc-warn{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-line)}
+.sc-fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-line)}
+.sc-neutral{background:var(--paper2);color:var(--ink2);border:1px solid var(--line)}
+.sc-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+
+/* Criteria grid */
+.criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.crit{padding:12px;background:var(--paper);border-radius:var(--r);border-left:3px solid var(--line2);display:flex;flex-direction:column;gap:6px}
+.crit.pass{border-left-color:var(--green);background:var(--green-bg)}
+.crit.fail{border-left-color:var(--red);background:var(--red-bg)}
+.crit.warn{border-left-color:var(--amber);background:var(--amber-bg)}
+.crit-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:5px}
+.crit-status{display:inline;width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.crit-score{font-size:12px;font-weight:700}
+.crit-msg{font-size:11px;color:var(--ink3);line-height:1.5}
+.crit.pass .crit-msg{color:var(--green)}
+.crit.fail .crit-msg{color:var(--red)}
+.crit.warn .crit-msg{color:var(--amber)}
+
+/* AI */
+.ai-section{background:var(--white);border:1px solid var(--line);border-radius:var(--r4);overflow:hidden;margin-bottom:14px}
+.ai-head{padding:12px 20px;border-bottom:1px solid var(--line);background:var(--paper);display:flex;align-items:center;gap:8px}
+.ai-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.ai-byok{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--blue);background:var(--blue-bg);padding:2px 7px;border-radius:20px;border:1px solid var(--blue-line)}
+.ai-body{padding:18px 20px}
+.ai-no-key{font-size:12.5px;color:var(--ink3);line-height:1.6}
+.ai-result{font-size:13.5px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;display:none}
+.ai-result.visible{display:block}
+.ai-meta{font-size:10px;color:var(--ink4);font-family:'JetBrains Mono',monospace;margin-top:12px;padding-top:12px;border-top:1px solid var(--paper);display:none}
+.run-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:var(--soft-black);color:#fff;border:none;border-radius:999px;font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+.run-btn:hover{background:#000}.run-btn:active{transform:scale(.98)}
+.run-btn:disabled{opacity:.35;cursor:not-allowed}
+.run-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.run-btn.blue{background:var(--blue)}.run-btn.blue:hover{background:var(--indigo)}
+
+/* Empty */
+.empty-state{text-align:center;padding:56px 20px}
+.empty-icon{width:52px;height:52px;background:var(--paper2);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.empty-icon svg{width:24px;height:24px;fill:none;stroke:var(--ink3);stroke-width:1.8;stroke-linecap:round}
+.empty-title{font-family:'Khand',sans-serif;font-weight:600;font-size:22px;color:var(--ink2);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--ink3)}
+
+/* Toast */
+.toast-stack{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{display:flex;align-items:center;gap:10px;background:var(--soft-black);color:white;padding:11px 14px;border-radius:12px;font-size:13px;font-family:'Manrope',sans-serif;box-shadow:0 8px 32px rgba(9,10,15,.25);animation:ti .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes ti{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.toast-ok{border-left:3px solid var(--green)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite;display:inline-block}
+@media(max-width:960px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto}.main{padding:22px 18px 60px}.criteria-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="wordmark">
+      <div class="wm-mark">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M8 10h16M8 15h16M8 20h12" stroke="#0E32E8" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="wm-name">SOP Scout</span>
+    </div>
+    <div class="wm-sub">SOP completeness checker</div>
+  </div>
+
+  <!-- BYOK -->
+  <div class="sb-sec">
+    <div class="sb-lbl">AI Gap Filler (BYOK)</div>
+    <div class="ptabs">
+      <button class="ptab on" onclick="switchP('anthropic',this)">Anthropic</button>
+      <button class="ptab" onclick="switchP('openai',this)">OpenAI</button>
+      <button class="ptab" onclick="switchP('gemini',this)">Gemini</button>
+      <button class="ptab" onclick="switchP('groq',this)">Groq</button>
+    </div>
+    <div class="ppanel on" id="pp-anthropic">
+      <div class="fl"><div class="fl-lbl">API KEY</div><input type="password" id="k-anthropic" placeholder="sk-ant-api03-…" oninput="checkKey()"></div>
+      <div class="mlist">
+        <div class="mopt on" onclick="selModel(this,'claude-sonnet-4-6')"><div class="mradio"></div><span class="mname">Claude Sonnet 4.6</span><span class="mtag">recommended</span></div>
+        <div class="mopt" onclick="selModel(this,'claude-opus-4-8')"><div class="mradio"></div><span class="mname">Claude Opus 4.8</span><span class="mtag">best</span></div>
+      </div>
+    </div>
+    <div class="ppanel" id="pp-openai"><div class="fl"><div class="fl-lbl">API KEY</div><input type="password" id="k-openai" placeholder="sk-…" oninput="checkKey()"></div><div class="mlist"><div class="mopt on" onclick="selModel(this,'gpt-4o')"><div class="mradio"></div><span class="mname">GPT-4o</span><span class="mtag">recommended</span></div></div></div>
+    <div class="ppanel" id="pp-gemini"><div class="fl"><div class="fl-lbl">API KEY</div><input type="password" id="k-gemini" placeholder="AIza…" oninput="checkKey()"></div><div class="mlist"><div class="mopt on" onclick="selModel(this,'gemini-2.0-flash')"><div class="mradio"></div><span class="mname">Gemini 2.0 Flash</span><span class="mtag">recommended</span></div></div></div>
+    <div class="ppanel" id="pp-groq"><div class="fl"><div class="fl-lbl">API KEY</div><input type="password" id="k-groq" placeholder="gsk_…" oninput="checkKey()"></div><div class="mlist"><div class="mopt on" onclick="selModel(this,'llama-3.3-70b-versatile')"><div class="mradio"></div><span class="mname">Llama 3.3 70B</span><span class="mtag">recommended</span></div></div></div>
+    <div class="key-status"><div class="kdot" id="kdot"></div><span id="kstatus">No key — gap filler disabled</span></div>
+  </div>
+
+  <div class="sb-sec" style="margin-top:auto">
+    <div style="font-size:10px;color:var(--ink4);line-height:1.7"><strong style="color:var(--ink3)">SOP Scout</strong> by Aonami Labs<br>MIT · No backend · Fully in-browser<br>SOPs never leave your tab.</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="ph">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 10h8M8 15h8M8 20h5M6 4h12c1 0 2 1 2 2v14c0 1-1 2-2 2H6c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/></svg>
+      Operations & Documentation
+    </div>
+    <div class="pt">Build SOPs that <em>stick.</em></div>
+    <div class="ps">Paste a Standard Operating Procedure and check it against 12 completeness criteria — structure, clarity, step clarity, role clarity, decision points, edge cases, escalation, and more. Get a quality score and AI suggestions to fill gaps.</div>
+  </div>
+
+  <div class="input-wrap" id="input-wrap">
+    <div class="ih">
+      <span class="ih-lbl">Paste your SOP</span>
+      <div class="ih-acts">
+        <button class="ih-btn" onclick="loadSample()">Load sample</button>
+        <button class="ih-btn" onclick="clearInput()">Clear</button>
+      </div>
+    </div>
+    <textarea id="sop-ta" rows="12" spellcheck="false" autocomplete="off"
+      placeholder="Example SOP format:&#10;&#10;PROCEDURE: Customer Refund Request&#10;PURPOSE: Handle customer refund requests fairly and quickly&#10;SCOPE: All customer-facing teams&#10;&#10;STEPS:&#10;1. Customer submits refund request via support ticket&#10;2. Support agent reviews order status&#10;3. If order shipped, approve up to 30% refund&#10;4. If not shipped, approve 100% refund&#10;&#10;ROLES:&#10;- Support Agent: Reviews and approves refunds&#10;- Manager: Escalation authority for disputes&#10;&#10;EXCEPTIONS:&#10;- Digital products: No refund after download&#10;- Custom orders: Case-by-case review"
+      oninput="onInput()"></textarea>
+  </div>
+
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M8 10h8M8 15h8M8 20h5M6 4h12c1 0 2 1 2 2v14c0 1-1 2-2 2H6c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/></svg></div>
+    <div class="empty-title">No SOP yet</div>
+    <div class="empty-sub">Paste a SOP above, or load a sample to see how the completeness check works.</div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="summary-strip" id="summary-strip"></div>
+    <div class="criteria-grid" id="criteria-grid"></div>
+    <div class="ai-section">
+      <div class="ai-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span class="ai-title">Gap Filling Suggestions</span>
+        <span class="ai-byok">BYOK</span>
+      </div>
+      <div class="ai-body">
+        <div id="ai-no-key" class="ai-no-key">Add an API key in the sidebar to get AI-powered suggestions for missing sections — edge cases, escalation procedures, decision trees, and clarifications.</div>
+        <div id="ai-btn-wrap" style="display:none">
+          <button class="run-btn blue" id="ai-btn" onclick="runAI()">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generate gap fill →
+          </button>
+        </div>
+        <div class="ai-result" id="ai-result"></div>
+        <div class="ai-meta" id="ai-meta"></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+// ══ STATE ═══════════════════════════════════════════
+let provider='anthropic',model='claude-sonnet-4-6';
+let lastSOP=null;
+
+// ══ PROVIDER ═════════════════════════════════════════
+function switchP(id,btn){
+  provider=id;
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.ppanel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pp-'+id).classList.add('on');
+  const defs={anthropic:'claude-sonnet-4-6',openai:'gpt-4o',gemini:'gemini-2.0-flash',groq:'llama-3.3-70b-versatile'};
+  model=defs[id];
+  document.querySelectorAll('#pp-'+id+' .mopt').forEach((o,i)=>o.classList.toggle('on',i===0));
+  checkKey();
+}
+function selModel(el,m){model=m;el.closest('.mlist').querySelectorAll('.mopt').forEach(o=>o.classList.remove('on'));el.classList.add('on');}
+function getKey(){return(document.getElementById('k-'+provider)||{value:''}).value.trim();}
+function checkKey(){
+  const ok=!!getKey();
+  document.getElementById('kdot').className='kdot'+(ok?' ok':'');
+  document.getElementById('kstatus').textContent=ok?provider+' · '+model:'No key — gap filler disabled';
+  document.getElementById('ai-btn-wrap').style.display=ok?'block':'none';
+  document.getElementById('ai-no-key').style.display=ok?'none':'block';
+}
+
+// ══ COMPLETENESS CRITERIA (12 checks) ════════════
+const CRITERIA=[
+  {name:'Title/Name',desc:'Has a clear procedure name or title',check:t=>/title|procedure|sop|name/i.test(t)&&t.length>30},
+  {name:'Purpose/Goal',desc:'Explains why this procedure exists',check:t=>/purpose|goal|objective|why/i.test(t)},
+  {name:'Scope',desc:'Defines who and what is covered',check:t=>/scope|applies to|applicable|who|audience/i.test(t)},
+  {name:'Step Clarity',desc:'Steps are numbered and specific actions',check:t=>/step|action|do|then|next|follow/i.test(t)&&/\d+\./i.test(t)},
+  {name:'Role Definition',desc:'Specifies who does each step',check:t=>/role|responsible|owner|agent|team|person|who/i.test(t)},
+  {name:'Decision Points',desc:'Includes if/then or decision criteria',check:t=>/if|then|case|condition|decision|when|where|why|approve|reject/i.test(t)},
+  {name:'Exceptions/Edge Cases',desc:'Documents exceptions and special cases',check:t=>/exception|edge case|special|unusual|corner|error|fails|what if/i.test(t)},
+  {name:'Escalation Path',desc:'Shows what to do when rules do not apply',check:t=>/escalat|manager|approval|override|exception|uncertain/i.test(t)},
+  {name:'Resources/Tools',desc:'Lists tools, forms, or systems needed',check:t=>/tool|form|system|software|resource|access|document/i.test(t)},
+  {name:'Timeline/Duration',desc:'Includes time estimates or deadlines',check:t=>/minute|hour|day|week|within|before|deadline|duration|time/i.test(t)},
+  {name:'Contact/Questions',desc:'Shows who to contact for clarification',check:t=>/contact|reach out|email|call|manager|support|help|question/i.test(t)},
+  {name:'Last Review Date',desc:'States when this procedure was last reviewed',check:t=>/review|updated|date|version|last/i.test(t)}
+];
+
+function analyzeSOP(text){
+  const lower=text.toLowerCase();
+  const findings=CRITERIA.map(c=>{
+    const pass=c.check(text);
+    return{
+      name:c.name,
+      desc:c.desc,
+      pass,
+      score:pass?10:0
+    };
+  });
+  const total=findings.reduce((a,b)=>a+b.score,0);
+  return{findings,score:total};
+}
+
+function onInput(){clearTimeout(window.inputTimer);window.inputTimer=setTimeout(process,300);}
+
+function process(){
+  const text=document.getElementById('sop-ta').value;
+  if(text.length<50){document.getElementById('results').classList.remove('visible');document.getElementById('empty-state').style.display='';return;}
+
+  const{findings,score}=analyzeSOP(text);
+  lastSOP=text;
+
+  const passes=findings.filter(f=>f.pass).length;
+  const fails=findings.filter(f=>!f.pass).length;
+  const scoreClass=score>=85?'sc-pass':score>=55?'sc-warn':'sc-fail';
+  const summary=`<span class="sc ${scoreClass}"><span class="sc-dot"></span>${score}/100</span><span class="sc sc-neutral">${passes}/${CRITERIA.length} complete</span><span class="sc sc-neutral">${fails} gap${fails!==1?'s':''}</span>`;
+  document.getElementById('summary-strip').innerHTML=summary;
+
+  const html=findings.map(f=>`<div class="crit ${f.pass?'pass':'fail'}"><div class="crit-title"><span class="crit-status" style="background:currentColor"></span>${f.name}</div><div class="crit-msg">${f.desc}</div><div class="crit-score">${f.pass?'✓ Present':'✗ Missing'}</div></div>`).join('');
+  document.getElementById('criteria-grid').innerHTML=html;
+
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('empty-state').style.display='none';
+
+  document.getElementById('ai-result').classList.remove('visible');
+  document.getElementById('ai-result').textContent='';
+  document.getElementById('ai-meta').style.display='none';
+  if(getKey()){document.getElementById('ai-btn').disabled=false;}
+}
+
+// ══ SAMPLES ═════════════════════════════════════
+const SAMPLE=`PROCEDURE: Customer Onboarding
+PURPOSE: Ensure all new customers are set up for success and understand the platform
+SCOPE: Applies to all new customer accounts created through the web or mobile app
+
+STEPS:
+1. Customer signs up → system sends welcome email within 1 hour
+2. Customer completes profile (name, company, goal) → unlocked by email verification
+3. Support agent reviews profile within 24 hours
+4. If profile incomplete: send reminder email with 5-day deadline
+5. If profile complete: send personalized onboarding video link
+6. Customer watches video → gets access to the main platform
+7. Agent does a 15-minute onboarding call (optional but recommended)
+
+ROLES:
+- Customer: Completes profile and watches onboarding video
+- Support Agent: Reviews profile, sends emails, conducts calls
+- Manager: Escalation for stuck customers or questions
+
+DECISION POINTS:
+- If customer does not verify email in 3 days: resend verification email
+- If profile is incomplete: mark account for follow-up, escalate to manager if no response in 5 days
+- If customer is a company (100+ employees): offer white-glove onboarding
+
+EXCEPTIONS:
+- Enterprise customers: assigned a dedicated success manager
+- Free trial users: limited onboarding (email + video only, no call)
+- International customers: onboarding call in their timezone
+
+TIMELINE:
+- Email sent: within 1 hour of signup
+- Profile review: within 24 hours
+- Follow-up if incomplete: within 5 days
+- Access granted: within 48 hours of complete profile
+
+CONTACT:
+- For questions: email support@company.com or reach out to your account manager`;
+
+function loadSample(){document.getElementById('sop-ta').value=SAMPLE;process();}
+function clearInput(){document.getElementById('sop-ta').value='';process();}
+
+// ══ AI ════════════════════════════════════════════
+async function runAI(){
+  if(!lastSOP)return;
+  const key=getKey();
+  if(!key){toast('Add an API key in the sidebar.','err');return;}
+  const btn=document.getElementById('ai-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin">↻</span> Generating…';
+
+  const{findings}=analyzeSOP(lastSOP);
+  const missing=findings.filter(f=>!f.pass).map(f=>f.name);
+
+  const prompt=`You are a process improvement consultant reviewing an SOP (Standard Operating Procedure).
+
+Current SOP excerpt:
+\`\`\`
+${lastSOP.slice(0,800)}
+\`\`\`
+
+Missing sections (score 0/10 each):
+${missing.map((m,i)=>`${i+1}. ${m}`).join('\n')}
+
+For each missing section, provide:
+1. A brief explanation of why it matters
+2. 2-3 bullet points of what should be included
+
+Example format:
+TITLE/NAME:
+Why it matters: Clear procedure names help teams find and reference the right SOP.
+What to include:
+• Short, specific procedure name (not "General Process")
+• Version number or date
+• [owner or team]
+
+NEXT SECTION:
+...
+
+Be concrete and actionable.`;
+
+  try{
+    const text=await callAI(prompt,key);
+    document.getElementById('ai-result').textContent=text;
+    document.getElementById('ai-result').classList.add('visible');
+    document.getElementById('ai-meta').textContent=`Generated by ${provider} · ${model}`;
+    document.getElementById('ai-meta').style.display='block';
+    btn.textContent='✓ Gaps filled';
+  }catch(e){toast('AI error: '+e.message,'err');btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generate gap fill →`;}
+}
+
+async function callAI(prompt,key){
+  if(provider==='anthropic'){const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,max_tokens:1200,messages:[{role:'user',content:prompt}]})});if(!r.ok)throw new Error(await r.text());return(await r.json()).content[0].text;}
+  if(provider==='openai'||provider==='groq'){const base=provider==='groq'?'https://api.groq.com/openai':'https://api.openai.com';const r=await fetch(base+'/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:1200,messages:[{role:'user',content:prompt}]})});if(!r.ok)throw new Error(await r.text());return(await r.json()).choices[0].message.content;}
+  if(provider==='gemini'){const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});if(!r.ok)throw new Error(await r.text());return(await r.json()).candidates[0].content.parts[0].text;}
+  throw new Error('Unknown provider');
+}
+
+function toast(msg,type='ok'){const s=document.getElementById('toast-stack');const t=document.createElement('div');t.className='toast toast-'+type;t.textContent=msg;s.appendChild(t);setTimeout(()=>t.remove(),3000);}
+checkKey();
+</script>
+</body>
+</html>
